@@ -12,7 +12,7 @@ import urllib.request as urllib2
 import hashlib, struct, time
 
 
-ZB_WS_URL = "wss://api.zb.cafe/websocket"
+ZB_WS_URL = "wss://api.zb.com/websocket"#"wss://api.zb.com:9999/websocket"
 
 class ZB_Spot_WS_Api(object):
     """基于Websocket的API对象"""
@@ -42,7 +42,12 @@ class ZB_Spot_WS_Api(object):
     def reconnect(self):
         """重新连接"""
         # 首先关闭之前的连接
-        self.close()
+        try:
+            self.close()
+        except e:
+            print(e)
+
+        sleep(5)
         
         # 再执行重连任务
         self.ws_sub_spot = websocket.WebSocketApp(self.host, 
@@ -57,9 +62,9 @@ class ZB_Spot_WS_Api(object):
                                              on_close=self.onClose,
                                              on_open=self.onOpen)   
             
-        self.thread = Thread(target=self.ws_sub_spot.run_forever)
+        self.thread = Thread(target=self.ws_sub_spot.run_forever, kwargs={'ping_interval':10, 'ping_timeout':5})
         self.thread.start()
-        self.thread_quick = Thread(target=self.ws_sub_quick_spot.run_forever)
+        self.thread_quick = Thread(target=self.ws_sub_quick_spot.run_forever, kwargs={'ping_interval':10, 'ping_timeout':5})
         self.thread_quick.start()
     
     #----------------------------------------------------------------------
@@ -82,9 +87,9 @@ class ZB_Spot_WS_Api(object):
                                              on_close=self.onClose,
                                              on_open=self.onOpen)   
             
-        self.thread = Thread(target=self.ws_sub_spot.run_forever)
+        self.thread = Thread(target=self.ws_sub_spot.run_forever, kwargs={'ping_interval':10, 'ping_timeout':5})
         self.thread.start()
-        self.thread_quick = Thread(target=self.ws_sub_quick_spot.run_forever)
+        self.thread_quick = Thread(target=self.ws_sub_quick_spot.run_forever, kwargs={'ping_interval':10, 'ping_timeout':5})
         self.thread_quick.start()
 
     #----------------------------------------------------------------------
@@ -106,11 +111,11 @@ class ZB_Spot_WS_Api(object):
         """关闭接口"""
         if self.thread and self.thread.isAlive():
             self.ws_sub_spot.close()
-            self.thread.join()
+            #self.thread.join()
 
         if self.thread_quick and self.thread_quick.isAlive():
             self.ws_sub_quick_spot.close()
-            self.thread_quick.join()
+            #self.thread_quick.join()
 
     #----------------------------------------------------------------------
     def onMessage(self, ws, evt):
@@ -120,7 +125,7 @@ class ZB_Spot_WS_Api(object):
     #----------------------------------------------------------------------
     def onError(self, ws, evt):
         """错误推送"""
-        print('onError:', evt)
+        print('onError:', ws, evt)
         
     #----------------------------------------------------------------------
     def onClose(self, ws, *arg):
@@ -178,16 +183,16 @@ class ZB_Spot_WS_Api(object):
         self.sendTradingRequest('push_user_incr_record', params, quick=True)
 
     #----------------------------------------------------------------------
-    def subscribeSpotQuickUserAssert(self, symbol_pair):
+    def subscribeSpotQuickUserAsset(self, symbol_pair):
         # 现货的 资产变更
         params = {}
-        self.sendTradingRequest('push_user_assert', params, quick=True)
+        self.sendTradingRequest('push_user_asset', params, quick=True)
 
     #----------------------------------------------------------------------
-    def subscribeSpotQuickUserIncrAssert(self, symbol_pair):
+    def subscribeSpotQuickUserIncrAsset(self, symbol_pair):
         # 现货的 增量资产变更
         params = {}
-        self.sendTradingRequest('push_user_incr_assert', params, quick=True)
+        self.sendTradingRequest('push_user_incr_asset', params, quick=True)
 
     #----------------------------------------------------------------------
     def __fill(self, value, lenght, fillByte):
@@ -270,13 +275,14 @@ class ZB_Spot_WS_Api(object):
             pass 
 
     #----------------------------------------------------------------------
-    def spotTrade(self, symbol_pair, type_, price, amount):
+    def spotTrade(self, symbol_pair, type_, price, amount, no='0'):
         """现货委托"""
         symbol_pair = symbol_pair.replace('_','') 
         params = {}
         params['tradeType'] = str(type_)
         params['price'] = str(price)
         params['amount'] = str(amount)
+        params['no'] = no
         
         channel = symbol_pair.lower() + "_order"
         
