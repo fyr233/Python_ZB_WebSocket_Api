@@ -44,7 +44,7 @@ class ZB_Spot_WS_Api(object):
         # 首先关闭之前的连接
         try:
             self.close()
-        except e:
+        except Exception as e:
             print(e)
 
         sleep(5)
@@ -125,7 +125,7 @@ class ZB_Spot_WS_Api(object):
     #----------------------------------------------------------------------
     def onError(self, ws, evt):
         """错误推送"""
-        print('onError:', ws, evt)
+        print('onError:', evt)
         
     #----------------------------------------------------------------------
     def onClose(self, ws, *arg):
